@@ -8,105 +8,96 @@ import requests
 
 # 🔑 CONFIGURAÇÕES VALIDADAS DO SEU BOT TELEGRAM
 CHAT_ID = 1027409830
+TELEGRAM_TOKEN = "8200577138:AAFdKrmOv2QQKrvfLGujQPe4yhiME-w4GzU"
 
-p1, p2, p3, p4, p5, p6 = (
-    "https://", "api.", "telegram", ".org/bot",
-    "8200577138:AAFdKrmOv2QQKrvfLGujQPe4yhiME-w4GzU",
-    "/sendMessage"
-)
-URL_TELEGRAM = p1 + p2 + p3 + p4 + p5 + p6
+URL_SEND = f"https://telegram.org{TELEGRAM_TOKEN}/sendMessage"
+URL_UPDATES = f"https://telegram.org{TELEGRAM_TOKEN}/getUpdates"
 
 alertas_enviados = []
-ultima_analise_pre_jogo = ""
+jogos_manuais = []  # Lista na memória para guardar os jogos que você cadastrar
+ultimo_update_id = 0
 
 def enviar_alerta_telegram(mensagem):
     payload = {"chat_id": CHAT_ID, "text": mensagem, "parse_mode": "Markdown"}
     try:
-        requests.post(URL_TELEGRAM, json=payload)
+        requests.post(URL_SEND, json=payload)
     except Exception as e:
         print(f"Erro Telegram: {e}")
 
 # ==============================================================================
-# 📊 MOTOR 1: PRÉ-JOGO TOTALMENTE AUTOMÁTICO (BUSCA JOGOS REAIS DO DIA)
+# 🗣️ NOVO MOTOR: ESCUTA DE COMANDOS INTERATIVOS DO TELEGRAM
 # ==============================================================================
-def executar_analise_pre_jogo_global():
-    global ultima_analise_pre_jogo
-    hoje = datetime.now().strftime("%Y-%m-%d")
-    
-    if ultima_analise_pre_jogo == hoje:
-        return
-        
-    print("📊 Buscando partidas reais do dia de hoje na internet...")
-    
-    msg_pre = f"📊 *ROBÔ ARACATIENSE: ANÁLISE PRÉ-JOGO ({datetime.now().strftime('%d/%m/%Y')})* 📊\n"
-    msg_pre += "⚠️ _Grade real de partidas mapeadas para as próximas horas_\n\n"
-    
-    esportes_ajuste = {
-        "FUTEBOL": "soccer",
-        "BASQUETE": "basketball",
-        "HÓQUEI NO GELO": "hockey",
-        "TÊNIS": "tennis",
-        "BEISEBOL": "baseball"
-    }
-    
-    encontrou_qualquer_jogo = False
-    
-    for nome_esporte, id_esporte in esportes_ajuste.items():
-        try:
-            url_agenda = f"https://spoyer.com{id_esporte}"
-            response = requests.get(url_agenda, timeout=10)
+def processar_comandos_telegram():
+    global ultimo_update_id
+    try:
+        url = f"{URL_UPDATES}?offset={ultimo_update_id + 1}&timeout=10"
+        response = requests.get(url, timeout=15)
+        if response.status_code != 200:
+            return
             
-            if response.status_code == 200:
-                dados = response.json()
-                jogos = dados.get("games", [])
+        dados = response.json()
+        for update in dados.get("result", []):
+            ultimo_update_id = update["update_id"]
+            message = update.get("message", {})
+            texto_comando = message.get("text", "").strip()
+            chat_remetente = message.get("chat", {}).get("id")
+
+            # Garante que o robô só obedece as ordens vindas do seu CHAT_ID
+            if chat_remetente != CHAT_ID:
+                continue
+
+            # 🛠️ COMANDO 1: CADASTRO MANUAL DE JOGOS DO DIA
+            if texto_comando.startswith("/jogo"):
+                conteudo_jogo = texto_comando.replace("/jogo", "").strip()
+                if not conteudo_jogo:
+                    enviar_alerta_telegram("⚠️ *Erro de digitação!*\nUse o formato correto:\n`/jogo Flamengo vs Vasco - 16h00`")
+                else:
+                    jogos_manuais.append(conteudo_jogo)
+                    enviar_alerta_telegram(f"✅ *Jogo Cadastrado com Sucesso!*\n📌 Mapeado para análise pré-jogo:\n`{conteudo_jogo}`")
+
+            # 📊 COMANDO 2: CONSULTAR PLACAR E JOGOS ATIVOS NO AO VIVO AGORA
+            elif texto_comando == "/aovivo":
+                enviar_alerta_telegram("📡 *Consultando canais ao vivo de futebol...*")
                 
-                if jogos:
-                    cont = 0
-                    for j in jogos:
-                        if cont < 2:
-                            time_casa = j.get("home", {}).get("name", "Equipe A")
-                            time_fora = j.get("away", {}).get("name", "Equipe B")
-                            liga = j.get("league", {}).get("name", "Torneio")
-                            
-                            if nome_esporte == "FUTEBOL":
-                                tip = "🔥 Entrada sugerida: Over 1.5 Gols na partida"
-                            elif nome_esporte == "BASQUETE":
-                                tip = "🔥 Entrada sugerida: Over Pontos no jogo"
-                            elif nome_esporte == "HÓQUEI NO GELO":
-                                tip = "🔥 Entrada sugerida: Mais de 4.5 Gols"
-                            elif nome_esporte == "TÊNIS":
-                                tip = "🔥 Entrada sugerida: Vencedor do 1º Set"
-                            else:
-                                tip = "🔥 Entrada sugerida: Mais de 6.5 Corridas"
-                                
-                            msg_pre += (
-                                f"📍 *[{nome_esporte}] - {liga}*\n"
-                                f"⚔️ {time_casa} vs {time_fora}\n"
-                                f"{tip}\n"
-                                f"-------------------------------------\n"
-                            )
-                            cont += 1
-                            encontrou_qualquer_jogo = True
-        except Exception:
-            pass
+                url_soccer = "https://spoyer.com"
+                try:
+                    res = requests.get(url_soccer, timeout=10).json()
+                    jogos_live = res.get("games", [])
+                    
+                    if not jogos_live:
+                        enviar_alerta_telegram("📭 Nenhuma partida de futebol ativa no funil de monitoramento neste minuto.")
+                        continue
+                        
+                    msg_live = "📟 *PAINEL DE JOGOS AO VIVO AGORA:* 📟\n\n"
+                    # Exibe as primeiras 4 partidas em andamento na rede
+                    for j in jogos_live[:4]:
+                        msg_live += (
+                            f"🏆 *{j.get('league', {}).get('name', 'Torneio')}*\n"
+                            f"⚔️ {j.get('home', {}).get('name')} {j.get('score', '0:0')} {j.get('away', {}).get('name')}\n"
+                            f"⏱️ Tempo: {j.get('time', 'Ao vivo')}\n"
+                            f"-------------------------------------\n"
+                        )
+                    enviar_alerta_telegram(msg_live)
+                except Exception:
+                    enviar_alerta_telegram("⚠️ Erro temporário de conexão com os placares da rodada.")
 
-    if not encontrou_qualquer_jogo:
-        msg_pre += "📋 Nenhuma grande partida encontrada nos servidores de agendamento para as próximas horas.\n"
-        msg_pre += "📡 O monitoramento continuará ativo focando 100% nos jogos ao vivo!\n"
-        msg_pre += "-------------------------------------\n"
+            # 📋 COMANDO 3: CONSULTAR JOGOS CADASTRADOS MANUALMENTE
+            elif texto_comando == "/lista":
+                if not jogos_manuais:
+                    enviar_alerta_telegram("📭 Sua lista de pré-jogo manual está vazia no momento.")
+                else:
+                    msg_lista = "📋 *SUA GRADE PRÉ-JOGO CADASTRADA:* 📋\n\n"
+                    for idx, j in enumerate(jogos_manuais, 1):
+                        msg_lista += f"{idx}. `{j}`\n"
+                    enviar_alerta_telegram(msg_lista)
 
-    enviar_alerta_telegram(msg_pre)
-    ultima_analise_pre_jogo = hoje
+    except Exception as e:
+        print(f"Erro na escuta do Telegram: {e}")
 
 # ==============================================================================
-# 🎯 MOTOR 2: ANÁLISE AO VIVO (5 ESPORTES)
+# 🎯 MONITORAMENTO INTELIGENTE EM LOOP AO VIVO (5 ESPORTES)
 # ==============================================================================
 def monitorar_esportes_avancado():
-    try:
-        executar_analise_pre_jogo_global()
-    except Exception as e:
-        print(f"Erro na rotina pré-jogo: {e}")
-
     esportes = {
         "FUTEBOL": "https://spoyer.com",
         "HOQUEI NO GELO": "https://spoyer.com",
@@ -145,12 +136,10 @@ def monitorar_esportes_avancado():
                     except:
                         pass
 
-                # CORREÇÃO DA LINHA 79: Removida a comparação duplicada de listas
                 if esporte == "FUTEBOL":
                     gols = placar.split(":")
                     if len(gols) == 2:
-                        g_casa = int(gols[0])
-                        g_fora = int(gols[1])
+                        g_casa, g_fora = int(gols[0]), int(gols[1])
                         chutes_totais = int(jogo.get("shots_home", 0)) + int(jogo.get("shots_away", 0))
 
                         if 15 <= minuto_atual <= 35 and g_casa == g_fora and chutes_totais >= 6:
@@ -182,7 +171,7 @@ def monitorar_esportes_avancado():
                     corridas = placar.split("-")
                     if len(corridas) == 2 and corridas[0] == corridas[1]:
                         disparar = True
-                        call_estrategia = f"⚾ *ESTRATÉGIA: INNINGS FINAIS BEISEBOL* ⚾\n🎯 *Sugestão:* Mercado de Empate na Entrada Atual ou Over Corridas."
+                        call_estrategia = f"⚾ *ESTRATÉGIA: INNINGS FINAIS BEISEBOL* ⚾\n🎯 *Sugestão:* Mercado de Empate na Entrada Atual."
 
                 if disparar:
                     msg = (
@@ -199,19 +188,14 @@ def monitorar_esportes_avancado():
         except Exception:
             pass
 
-def loop_do_robo():
-    print("🟢 Central Inteligente Híbrida v7 Ativada...")
-    enviar_alerta_telegram("🚀 *Central de Inteligência v7 Ativada!* Motor configurado para buscar apenas os confrontos reais do dia na internet.")
+# Loops paralelos do sistema na Nuvem
+def loop_da_escuta_comandos():
     while True:
-        monitorar_esportes_avancado()
-        time.sleep(60)
+        processar_comandos_telegram()
+        time.sleep(1)  # Verifica se você digitou algum comando a cada 1 segundo
 
-def rodar_servidor_web():
-    PORT = 10000
-    Handler = http.server.SimpleHTTPRequestHandler
-    with socketserver.TCPServer(("", PORT), Handler) as httpd:
-        httpd.serve_forever()
-
-if __name__ == "__main__":
-    threading.Thread(target=loop_do_robo, daemon=True).start()
-    rodar_servidor_web()
+def loop_do_monitor_live():
+    print("🟢 Central Interativa v8 Ligada na Nuvem...")
+    enviar_alerta_telegram("⚙️ *Central v8 Interativa Online!* Comandos liberados:\n\n"
+                            "👉 Digite `/aovivo` para ver o painel de jogos ativos.\n"
+                            "👉 Digite `/jogo Nome do Jogo` para cadastrar pré-jogo.\n"
