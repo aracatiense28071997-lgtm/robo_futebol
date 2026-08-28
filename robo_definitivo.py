@@ -200,3 +200,4 @@ def monitorar_esportes_avancado():
                         diff_nfl = abs(p_casa_nfl - p_fora_nfl)
                         if diff_nfl <= 7:
                             disparar = True
+
