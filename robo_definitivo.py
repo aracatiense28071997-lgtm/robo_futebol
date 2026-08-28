@@ -78,7 +78,7 @@ def processar_comandos_telegram():
                         
                         if jogos_live:
                             msg_live += f"🔹 *{nome_esp}* 🔹\n"
-                            for j in jogos_live[:2]:  # Traz os 2 principais de cada esporte ativo
+                            for j in jogos_live[:2]:
                                 msg_live += f"⚔️ {j.get('home', {}).get('name')} {j.get('score', '0:0')} {j.get('away', {}).get('name')} ({j.get('time', 'Live')})\n"
                             msg_live += "-------------------------------------\n"
                             encontrou_jogos = True
@@ -150,7 +150,8 @@ def monitorar_esportes_avancado():
                 if esporte == "FUTEBOL":
                     gols = placar.split(":")
                     if len(gols) == 2:
-                        g_casa, g_fora = int(gols[0]), int(gols[1])
+                        g_casa = int(gols[0])
+                        g_fora = int(gols[1])
                         chutes_totais = int(jogo.get("shots_home", 0)) + int(jogo.get("shots_away", 0))
 
                         if 15 <= minuto_atual <= 35 and g_casa == g_fora and chutes_totais >= 6:
@@ -167,12 +168,13 @@ def monitorar_esportes_avancado():
                         disparar = True
                         call_estrategia = f"🏒 *ESTRATÉGIA: OVER GOLS HÓQUEI AO VIVO* 🏒\n🎯 *Sugestão:* Over Gols no Período Atual.\n📊 Bombardeio na pista! {chutes_SOG} finalizações registradas."
 
-                # 🏀 3. BASQUETE (CORRIGIDO)
+                # 🏀 3. BASQUETE
                 elif esporte == "BASQUETE" and ("4th" in tempo or "Quarter 4" in tempo):
                     pontos = placar.split("-")
                     if len(pontos) == 2:
-                        # CORREÇÃO DA LINHA 144: Adicionado os índices [0] e [1] para conversão correta de strings
-                        if abs(int(pontos[0]) - int(pontos[1])) <= 3:
+                        p_casa = int(pontos[0])
+                        p_fora = int(pontos[1])
+                        if abs(p_casa - p_fora) <= 3:
                             disparar = True
                             call_estrategia = f"🏀 *ESTRATÉGIA: BASQUETE LIVE* 🏀\n🎯 *Sugestão:* OVER pontos no Quarto Final.\n📊 Cronômetro parando muito por faltas táticas."
 
@@ -193,7 +195,8 @@ def monitorar_esportes_avancado():
                 elif esporte == "FUTEBOL AMERICANO" and ("4th" in tempo or "Quarter 4" in tempo):
                     pontos_nfl = placar.split("-")
                     if len(pontos_nfl) == 2:
-                        diff_nfl = abs(int(pontos_nfl[0]) - int(pontos_nfl[1]))
+                        p_casa_nfl = int(pontos_nfl[0])
+                        p_fora_nfl = int(pontos_nfl[1])
+                        diff_nfl = abs(p_casa_nfl - p_fora_nfl)
                         if diff_nfl <= 7:
                             disparar = True
-
