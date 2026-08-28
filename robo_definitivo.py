@@ -26,7 +26,7 @@ def enviar_alerta_telegram(mensagem):
         print(f"Erro Telegram: {e}")
 
 # ==============================================================================
-# 📊 MOTOR 1: ENTRADAS PRÉ-JOGO (5 ESPORTES)
+# 📊 MOTOR 1: ENTRADAS PRÉ-JOGO (CORRIGIDO COM PARTIDAS REAIS DO DIA)
 # ==============================================================================
 def executar_analise_pre_jogo_global():
     global ultima_analise_pre_jogo
@@ -35,58 +35,56 @@ def executar_analise_pre_jogo_global():
     if ultima_analise_pre_jogo == hoje:
         return
         
-    print("📊 Iniciando varredura pré-jogo para as 5 modalidades...")
+    print("📊 Iniciando varredura pré-jogo atualizada...")
     
-    urls_agenda = {
-        "FUTEBOL": "https://fixturedownload.com",
-        "BASQUETE": "https://fixturedownload.com",
-        "HÓQUEI NO GELO": "https://fixturedownload.com"
-    }
+    # Nova API de contingência alternativa e estável que puxa os jogos reais do dia
+    url_agenda_real = "https://spoyer.com"
+    url_basquete_real = "https://spoyer.com"
     
     msg_pre = f"📊 *ROBÔ ARACATIENSE: ANÁLISE PRÉ-JOGO ({datetime.now().strftime('%d/%m/%Y')})* 📊\n"
-    msg_pre += "⚠️ _Filtro: Cruzamento de dados de alta probabilidade estatística_\n\n"
+    msg_pre += "⚠️ _Filtro: Confrontos reais mapeados nas próximas horas_\n\n"
     
-    encontrou_jogos = False
-    
-    for esporte, url in urls_agenda.items():
-        try:
-            response = requests.get(url, timeout=12)
-            if response.status_code == 200:
-                partidas = response.json()
-                cont = 0
-                
-                for jogo in partidas:
-                    if (jogo.get("HomeTeamScore") is None or jogo.get("HomeScore") is None) and cont < 1:
-                        time_casa = jogo.get("HomeTeam") or jogo.get("Home")
-                        time_fora = jogo.get("AwayTeam") or jogo.get("Away")
-                        
-                        if esporte == "FUTEBOL":
-                            tip = "🔥 Entrada: Over 1.5 Gols ou Ambas Marcam\n📈 Tendência de jogo aberto: 78%"
-                        elif esporte == "BASQUETE":
-                            tip = "🔥 Entrada: Vitória do Favorito (Mando de Campo)\n📈 Confiança estatística: 82%"
-                        else:
-                            tip = "🔥 Entrada: Over 4.5 Gols no Tempo Regular\n📈 Média de gols alta na temporada"
-                            
-                        msg_pre += (
-                            f"📍 *[{esporte}] - Liga Principal*\n"
-                            f"⚔️ {time_casa} vs {time_fora}\n"
-                            f"{tip}\n"
-                            f"-------------------------------------\n"
-                        )
-                        cont += 1
-                        encontrou_jogos = True
-        except Exception:
-            pass
+    # ⚽ Capturando partidas reais de Futebol
+    try:
+        res_fut = requests.get(url_agenda_real, timeout=12).json()
+        jogos_fut = res_fut.get("games", [])[:2] # Pega os 2 principais jogos de hoje
+        for j in jogos_fut:
+            liga = j.get("league", {}).get("name", "Campeonato")
+            msg_pre += (
+                f"⚽ *[FUTEBOL] - {liga}*\n"
+                f"⚔️ {j.get('home', {}).get('name')} vs {j.get('away', {}).get('name')}\n"
+                f"🔥 Entrada: Over 1.5 Gols na partida\n"
+                f"-------------------------------------\n"
+            )
+    except Exception:
+        pass
 
-    # Incluindo indicações fixas de tendências diárias para Tênis e Beisebol na listagem da manhã
+    # 🏀 Capturando partidas reais de Basquete
+    try:
+        res_basq = requests.get(url_basquete_real, timeout=12).json()
+        jogos_basq = res_basq.get("games", [])[:2]
+        for j in jogos_basq:
+            liga = j.get("league", {}).get("name", "Liga de Basquete")
+            msg_pre += (
+                f"🏀 *[BASQUETE] - {liga}*\n"
+                f"⚔️ {j.get('home', {}).get('name')} vs {j.get('away', {}).get('name')}\n"
+                f"🔥 Entrada: Vitória da Equipe Casa (ML)\n"
+                f"-------------------------------------\n"
+            )
+    except Exception:
+        pass
+
+    # 🏒 🎾 ⚾ Demais modalidades mapeadas com tendências diárias estruturadas
     msg_pre += (
-        f"📍 *[TÊNIS] - Circuito ATP/WTA*\n"
-        f"🔥 Entrada: Vencedor do 1º Set (Favorito de ranking)\n"
-        f"📈 Assertividade histórica no piso rápido: 84%\n"
+        f"🏒 *[HÓQUEI NO GELO] - Próximas Rodadas*\n"
+        f"⚔️ Principais confrontos do card noturno\n"
+        f"🔥 Entrada: Mais de 4.5 Gols no Tempo Regular\n"
         f"-------------------------------------\n"
-        f"📍 *[BEISEBOL] - Temporada Major League*\n"
+        f"🎾 *[TÊNIS] - Circuito ATP/WTA*\n"
+        f"🔥 Entrada: Vencedor do 1º Set (Favorito de ranking)\n"
+        f"-------------------------------------\n"
+        f"⚾ *[BEISEBOL] - Temporada de Grandes Ligas*\n"
         f"🔥 Entrada: Mais de 6.5 Corridas (Over Runs)\n"
-        f"📈 Média das equipes superior a 8.2 rebatidas\n"
         f"-------------------------------------\n"
     )
 
@@ -102,7 +100,6 @@ def monitorar_esportes_avancado():
     except Exception as e:
         print(f"Erro na rotina pré-jogo: {e}")
 
-    # Lista de requisições contendo as 5 modalidades integradas de forma limpa
     esportes = {
         "FUTEBOL": "https://spoyer.com",
         "HOQUEI NO GELO": "https://spoyer.com",
@@ -139,7 +136,6 @@ def monitorar_esportes_avancado():
                 except:
                     minuto_atual = 0
 
-                # ⚽ FUTEBOL AO VIVO (GOLS HT E FT)
                 if esporte == "FUTEBOL":
                     gols = placar.split(":")
                     if len(gols) == 2:
@@ -153,14 +149,12 @@ def monitorar_esportes_avancado():
                             disparar = True
                             call_estrategia = f"🔥 *ESTRATÉGIA: GOL NO SEGUNDO TEMPO (FT)* 🔥\n🎯 *Sugestão:* Over Gols Limite FT.\n📊 Ritmo crítico com {chutes_totais} chutes no total!"
 
-                # 🏒 HÓQUEI NO GELO AO VIVO
                 elif esporte == "HOQUEI NO GELO":
                     chutes_SOG = int(jogo.get("shots_home", 0)) + int(jogo.get("shots_away", 0))
                     if chutes_SOG >= 18:
                         disparar = True
                         call_estrategia = f"🏒 *ESTRATÉGIA: OVER GOLS HÓQUEI AO VIVO* 🏒\n🎯 *Sugestão:* Over Gols no Período Atual.\n📊 Bombardeio na pista! {chutes_SOG} finalizações registradas."
 
-                # 🏀 BASQUETE AO VIVO
                 elif esporte == "BASQUETE" and ("4th" in tempo or "Quarter 4" in tempo):
                     pontos = placar.split("-")
                     if len(pontos) == 2:
@@ -168,13 +162,11 @@ def monitorar_esportes_avancado():
                             disparar = True
                             call_estrategia = f"🏀 *ESTRATÉGIA: BASQUETE LIVE* 🏀\n🎯 *Sugestão:* OVER pontos no Quarto Final.\n📊 Cronômetro parando muito por faltas táticas."
 
-                # 🎾 TÊNIS AO VIVO
                 elif esporte == "TENIS":
                     if "5:5" in placar or "6:5" in placar or "5:6" in placar:
                         disparar = True
                         call_estrategia = f"🎾 *ESTRATÉGIA: TÊNIS LIVE* 🎾\n🎯 *Sugestão:* Vencedor do Próximo Game (Sacador).\n📊 Reta final equilibrada de set com vantagem para quem saca."
 
-                # ⚾ BEISEBOL AO VIVO
                 elif esporte == "BEISEBOL" and ("8th" in tempo or "9th" in tempo):
                     corridas = placar.split("-")
                     if len(corridas) == 2 and corridas == corridas:
@@ -197,8 +189,8 @@ def monitorar_esportes_avancado():
             pass
 
 def loop_do_robo():
-    print("🟢 Sistema Híbrido Multiesportes v4 Ativado...")
-    enviar_alerta_telegram("🚀 *Central de Inteligência Híbrida 5 Esportes Ativada!* Mapeando Futebol, Basquete, Tênis, Beisebol e Hóquei de forma unificada para Pré-Jogo e Ao Vivo.")
+    print("🟢 Sistema Híbrido Corrigido Ativado...")
+    enviar_alerta_telegram("🚀 *Central de Inteligência v5 Corrigida!* Puxando partidas reais com nomes de times para o Pré-Jogo.")
     while True:
         monitorar_esportes_avancado()
         time.sleep(60)
