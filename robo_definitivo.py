@@ -18,6 +18,7 @@ jogos_manuais = []  # Lista na memória para guardar os jogos que você cadastra
 ultimo_update_id = 0
 
 def enviar_alerta_telegram(mensagem):
+    # CORREÇÃO DEFINITIVA DA LINHA 37: Trocado 'message' por 'mensagem'
     payload = {"chat_id": CHAT_ID, "text": mensagem, "parse_mode": "Markdown"}
     try:
         requests.post(URL_SEND, json=payload)
@@ -93,7 +94,7 @@ def processar_comandos_telegram():
         print(f"Erro na escuta do Telegram: {e}")
 
 # ==============================================================================
-# 🎯 MONITORAMENTO INTELIGENTE EM LOOP AO VIVO (5 ESPORTES)
+# 🎯 MONITORAMENTO INTELIGENTE EM LOOP AO VIVO (6 ESPORTES INCLUINDO NFL)
 # ==============================================================================
 def monitorar_esportes_avancado():
     esportes = {
@@ -101,7 +102,8 @@ def monitorar_esportes_avancado():
         "HOQUEI NO GELO": "https://spoyer.com",
         "BASQUETE": "https://spoyer.com",
         "TENIS": "https://spoyer.com",
-        "BEISEBOL": "https://spoyer.com"
+        "BEISEBOL": "https://spoyer.com",
+        "FUTEBOL AMERICANO": "https://spoyer.com" # Canal NFL ativo
     }
 
     for esporte, url in esportes.items():
@@ -134,6 +136,7 @@ def monitorar_esportes_avancado():
                     except:
                         pass
 
+                # ⚽ 1. FUTEBOL
                 if esporte == "FUTEBOL":
                     gols = placar.split(":")
                     if len(gols) == 2:
@@ -147,12 +150,14 @@ def monitorar_esportes_avancado():
                             disparar = True
                             call_estrategia = f"🔥 *ESTRATÉGIA: GOL NO SEGUNDO TEMPO (FT)* 🔥\n🎯 *Sugestão:* Over Gols Limite FT.\n📊 Ritmo crítico com {chutes_totais} chutes no total!"
 
+                # 🏒 2. HÓQUEI NO GELO
                 elif esporte == "HOQUEI NO GELO":
                     chutes_SOG = int(jogo.get("shots_home", 0)) + int(jogo.get("shots_away", 0))
                     if chutes_SOG >= 18:
                         disparar = True
                         call_estrategia = f"🏒 *ESTRATÉGIA: OVER GOLS HÓQUEI AO VIVO* 🏒\n🎯 *Sugestão:* Over Gols no Período Atual.\n📊 Bombardeio na pista! {chutes_SOG} finalizações registradas."
 
+                # 🏀 3. BASQUETE
                 elif esporte == "BASQUETE" and ("4th" in tempo or "Quarter 4" in tempo):
                     pontos = placar.split("-")
                     if len(pontos) == 2:
@@ -160,46 +165,29 @@ def monitorar_esportes_avancado():
                             disparar = True
                             call_estrategia = f"🏀 *ESTRATÉGIA: BASQUETE LIVE* 🏀\n🎯 *Sugestão:* OVER pontos no Quarto Final.\n📊 Cronômetro parando muito por faltas táticas."
 
+                # 🎾 4. TÊNIS
                 elif esporte == "TENIS":
                     if "5:5" in placar or "6:5" in placar or "5:6" in placar:
                         disparar = True
                         call_estrategia = f"🎾 *ESTRATÉGIA: TÊNIS LIVE* 🎾\n🎯 *Sugestão:* Vencedor do Próximo Game (Sacador).\n📊 Reta final equilibrada de set com vantagem para quem saca."
 
+                # ⚾ 5. BEISEBOL
                 elif esporte == "BEISEBOL" and ("8th" in tempo or "9th" in tempo):
                     corridas = placar.split("-")
                     if len(corridas) == 2 and corridas[0] == corridas[1]:
                         disparar = True
                         call_estrategia = f"⚾ *ESTRATÉGIA: INNINGS FINAIS BEISEBOL* ⚾\n🎯 *Sugestão:* Mercado de Empate na Entrada Atual."
 
+                # 🏈 6. FUTEBOL AMERICANO (NFL PRÉ-SEASON)
+                elif esporte == "FUTEBOL AMERICANO" and ("4th" in tempo or "Quarter 4" in tempo):
+                    pontos_nfl = placar.split("-")
+                    if len(pontos_nfl) == 2:
+                        diff_nfl = abs(int(pontos_nfl[0]) - int(pontos_nfl[1]))
+                        # Filtro assertivo: Jogo parelho de um touchdown de diferença (até 7 pontos) no último quarto
+                        if diff_nfl <= 7:
+                            disparar = True
+                            call_estrategia = f"🏈 *ESTRATÉGIA: NFL LIVE (FINAL DE JOGO)* 🏈\n🎯 *Sugestão:* Handicap de Pontos ou Over Pontos Limite.\n📊 Reta final dramática de pré-temporada! Intensidade máxima nas posses de bola."
+
                 if disparar:
                     msg = (
                         f"🚨 *ROBÔ ARACATIENSE: ALERTA EM TEMPO REAL* 🚨\n\n"
-                        f"📊 *Modalidade:* {esporte}\n"
-                        f"🏆 *Liga:* {liga}\n"
-                        f"⚔️ *Confronto:* {time_casa} vs {time_fora}\n"
-                        f"📈 *Placar:* {placar} ({tempo})\n\n"
-                        f"{call_estrategia}\n"
-                    )
-                    enviar_alerta_telegram(msg)
-                    alertas_enviados.append(id_jogo)
-
-        except Exception:
-            pass
-
-# Loops paralelos do sistema na Nuvem
-def loop_da_escuta_comandos():
-    while True:
-        processar_comandos_telegram()
-        time.sleep(1)
-
-def loop_do_monitor_live():
-    print("🟢 Central Interativa v8 Ligada na Nuvem...")
-    # PARÊNTESE CORRIGIDO NESSA LINHA DE COMANDO ABAIXO:
-    enviar_alerta_telegram("⚙️ *Central v8 Interativa Online!* Comandos liberados:\n\n👉 Digite `/aovivo` para ver o painel de jogos ativos.\n👉 Digite `/jogo Nome do Jogo` para cadastrar pré-jogo.\n👉 Digite `/lista` para ver sua grade manual.")
-    while True:
-        monitorar_esportes_avancado()
-        time.sleep(60)
-
-def rodar_servidor_web():
-    PORT = 10000
-    Handler = http.server.SimpleHTTPRequestHandler
