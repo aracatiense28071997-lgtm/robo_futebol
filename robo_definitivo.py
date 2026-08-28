@@ -3,7 +3,6 @@ import json
 import socketserver
 import threading
 import time
-from datetime import datetime
 import requests
 
 # 🔑 CONFIGURAÇÕES VALIDADAS DO SEU BOT TELEGRAM
@@ -45,7 +44,6 @@ def processar_comandos_telegram():
             if chat_remetente != CHAT_ID:
                 continue
 
-            # 🛠️ COMANDO 1: CADASTRO MANUAL DE JOGOS
             if texto_comando.startswith("/jogo"):
                 conteudo_jogo = texto_comando.replace("/jogo", "").strip()
                 if not conteudo_jogo:
@@ -54,7 +52,6 @@ def processar_comandos_telegram():
                     jogos_manuais.append(conteudo_jogo)
                     enviar_alerta_telegram(f"✅ *Jogo Cadastrado com Sucesso!*\n📌 Mapeado para análise pré-jogo:\n`{conteudo_jogo}`")
 
-            # 📊 COMANDO 2: CONSULTAR TODOS OS ESPORTES AO VIVO AGORA (6 ESPORTES)
             elif texto_comando == "/aovivo":
                 enviar_alerta_telegram("📡 *Iniciando varredura global nos 6 canais esportivos...*")
                 
@@ -90,7 +87,6 @@ def processar_comandos_telegram():
                 else:
                     enviar_alerta_telegram("📭 Nenhum evento esportivo ativo no mundo passando pelos canais neste minuto.")
 
-            # 📋 COMANDO 3: CONSULTAR JOGOS CADASTRADOS MANUALMENTE
             elif texto_comando == "/lista":
                 if not jogos_manuais:
                     enviar_alerta_telegram("📭 Sua lista de pré-jogo manual está vazia no momento.")
@@ -146,7 +142,7 @@ def monitorar_esportes_avancado():
                     except:
                         pass
 
-                # ⚽ 1. FUTEBOL
+                # ⚽ FUTEBOL
                 if esporte == "FUTEBOL":
                     gols = placar.split(":")
                     if len(gols) == 2:
@@ -161,14 +157,14 @@ def monitorar_esportes_avancado():
                             disparar = True
                             call_estrategia = f"🔥 *ESTRATÉGIA: GOL NO SEGUNDO TEMPO (FT)* 🔥\n🎯 *Sugestão:* Over Gols Limite FT.\n📊 Ritmo crítico com {chutes_totais} chutes no total!"
 
-                # 🏒 2. HÓQUEI NO GELO
+                # 🏒 HÓQUEI NO GELO
                 elif esporte == "HOQUEI NO GELO":
                     chutes_SOG = int(jogo.get("shots_home", 0)) + int(jogo.get("shots_away", 0))
                     if chutes_SOG >= 18:
                         disparar = True
                         call_estrategia = f"🏒 *ESTRATÉGIA: OVER GOLS HÓQUEI AO VIVO* 🏒\n🎯 *Sugestão:* Over Gols no Período Atual.\n📊 Bombardeio na pista! {chutes_SOG} finalizações registradas."
 
-                # 🏀 3. BASQUETE
+                # 🏀 BASQUETE
                 elif esporte == "BASQUETE" and ("4th" in tempo or "Quarter 4" in tempo):
                     pontos = placar.split("-")
                     if len(pontos) == 2:
@@ -178,20 +174,20 @@ def monitorar_esportes_avancado():
                             disparar = True
                             call_estrategia = f"🏀 *ESTRATÉGIA: BASQUETE LIVE* 🏀\n🎯 *Sugestão:* OVER pontos no Quarto Final.\n📊 Cronômetro parando muito por faltas táticas."
 
-                # 🎾 4. TÊNIS
+                # 🎾 TÊNIS
                 elif esporte == "TENIS":
                     if "5:5" in placar or "6:5" in placar or "5:6" in placar:
                         disparar = True
                         call_estrategia = f"🎾 *ESTRATÉGIA: TÊNIS LIVE* 🎾\n🎯 *Sugestão:* Vencedor do Próximo Game (Sacador).\n📊 Reta final equilibrada de set com vantagem para quem saca."
 
-                # ⚾ 5. BEISEBOL
+                # ⚾ BEISEBOL
                 elif esporte == "BEISEBOL" and ("8th" in tempo or "9th" in tempo):
                     corridas = placar.split("-")
                     if len(corridas) == 2 and corridas[0] == corridas[1]:
                         disparar = True
                         call_estrategia = f"⚾ *ESTRATÉGIA: INNINGS FINAIS BEISEBOL* ⚾\n🎯 *Sugestão:* Mercado de Empate na Entrada Atual."
 
-                # 🏈 6. FUTEBOL AMERICANO (NFL)
+                # 🏈 FUTEBOL AMERICANO (NFL)
                 elif esporte == "FUTEBOL AMERICANO" and ("4th" in tempo or "Quarter 4" in tempo):
                     pontos_nfl = placar.split("-")
                     if len(pontos_nfl) == 2:
@@ -200,4 +196,7 @@ def monitorar_esportes_avancado():
                         diff_nfl = abs(p_casa_nfl - p_fora_nfl)
                         if diff_nfl <= 7:
                             disparar = True
+                            call_estrategia = f"🏈 *ESTRATÉGIA: NFL LIVE (FINAL DE JOGO)* 🏈\n🎯 *Sugestão:* Handicap de Pontos ou Over Pontos Limite.\n📊 Reta final dramática de pré-temporada!"
+
+                if disparar:
 
