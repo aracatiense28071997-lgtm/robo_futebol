@@ -25,7 +25,7 @@ def enviar_alerta_telegram(mensagem):
         print(f"Erro Telegram: {e}")
 
 # ==============================================================================
-# 🗣️ NOVO MOTOR: ESCUTA DE COMANDOS INTERATIVOS DO TELEGRAM
+# 🗣️ MOTOR: ESCUTA DE COMANDOS INTERATIVOS DO TELEGRAM
 # ==============================================================================
 def processar_comandos_telegram():
     global ultimo_update_id
@@ -42,11 +42,10 @@ def processar_comandos_telegram():
             texto_comando = message.get("text", "").strip()
             chat_remetente = message.get("chat", {}).get("id")
 
-            # Garante que o robô só obedece as ordens vindas do seu CHAT_ID
             if chat_remetente != CHAT_ID:
                 continue
 
-            # 🛠️ COMANDO 1: CADASTRO MANUAL DE JOGOS DO DIA
+            # 🛠️ COMANDO 1: CADASTRO MANUAL DE JOGOS
             if texto_comando.startswith("/jogo"):
                 conteudo_jogo = texto_comando.replace("/jogo", "").strip()
                 if not conteudo_jogo:
@@ -55,7 +54,7 @@ def processar_comandos_telegram():
                     jogos_manuais.append(conteudo_jogo)
                     enviar_alerta_telegram(f"✅ *Jogo Cadastrado com Sucesso!*\n📌 Mapeado para análise pré-jogo:\n`{conteudo_jogo}`")
 
-            # 📊 COMANDO 2: CONSULTAR PLACAR E JOGOS ATIVOS NO AO VIVO AGORA
+            # 📊 COMANDO 2: CONSULTAR PLACAR AO VIVO AGORA
             elif texto_comando == "/aovivo":
                 enviar_alerta_telegram("📡 *Consultando canais ao vivo de futebol...*")
                 
@@ -69,7 +68,6 @@ def processar_comandos_telegram():
                         continue
                         
                     msg_live = "📟 *PAINEL DE JOGOS AO VIVO AGORA:* 📟\n\n"
-                    # Exibe as primeiras 4 partidas em andamento na rede
                     for j in jogos_live[:4]:
                         msg_live += (
                             f"🏆 *{j.get('league', {}).get('name', 'Torneio')}*\n"
@@ -192,10 +190,16 @@ def monitorar_esportes_avancado():
 def loop_da_escuta_comandos():
     while True:
         processar_comandos_telegram()
-        time.sleep(1)  # Verifica se você digitou algum comando a cada 1 segundo
+        time.sleep(1)
 
 def loop_do_monitor_live():
     print("🟢 Central Interativa v8 Ligada na Nuvem...")
-    enviar_alerta_telegram("⚙️ *Central v8 Interativa Online!* Comandos liberados:\n\n"
-                            "👉 Digite `/aovivo` para ver o painel de jogos ativos.\n"
-                            "👉 Digite `/jogo Nome do Jogo` para cadastrar pré-jogo.\n"
+    # PARÊNTESE CORRIGIDO NESSA LINHA DE COMANDO ABAIXO:
+    enviar_alerta_telegram("⚙️ *Central v8 Interativa Online!* Comandos liberados:\n\n👉 Digite `/aovivo` para ver o painel de jogos ativos.\n👉 Digite `/jogo Nome do Jogo` para cadastrar pré-jogo.\n👉 Digite `/lista` para ver sua grade manual.")
+    while True:
+        monitorar_esportes_avancado()
+        time.sleep(60)
+
+def rodar_servidor_web():
+    PORT = 10000
+    Handler = http.server.SimpleHTTPRequestHandler
