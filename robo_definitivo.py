@@ -64,17 +64,12 @@ def processar_comandos_telegram():
                     jogos_live = res.get("games", [])
                     
                     if not jogos_live:
-                        enviar_alerta_telegram("📭 Nenhuma partida de futebol ativa no funil de monitoramento neste minuto.")
+                        enviar_alerta_telegram("📭 Nenhuma partida de futebol activa no funil de monitoramento neste minuto.")
                         continue
                         
                     msg_live = "📟 *PAINEL DE JOGOS AO VIVO AGORA:* 📟\n\n"
                     for j in jogos_live[:4]:
-                        msg_live += (
-                            f"🏆 *{j.get('league', {}).get('name', 'Torneio')}*\n"
-                            f"⚔️ {j.get('home', {}).get('name')} {j.get('score', '0:0')} {j.get('away', {}).get('name')}\n"
-                            f"⏱️ Tempo: {j.get('time', 'Ao vivo')}\n"
-                            f"-------------------------------------\n"
-                        )
+                        msg_live += f"🏆 *{j.get('league', {}).get('name', 'Torneio')}*\n⚔️ {j.get('home', {}).get('name')} {j.get('score', '0:0')} {j.get('away', {}).get('name')}\n⏱️ Tempo: {j.get('time', 'Ao vivo')}\n-------------------------------------\n"
                     enviar_alerta_telegram(msg_live)
                 except Exception:
                     enviar_alerta_telegram("⚠️ Erro temporário de conexão com os placares da rodada.")
@@ -93,7 +88,7 @@ def processar_comandos_telegram():
         print(f"Erro na escuta do Telegram: {e}")
 
 # ==============================================================================
-# 🎯 MONITORAMENTO INTELIGENTE EM LOOP AO VIVO (6 ESPORTES INCLUINDO NFL)
+# 🎯 MONITORAMENTO INTELIGENTE EM LOOP AO VIVO (6 ESPORTES)
 # ==============================================================================
 def monitorar_esportes_avancado():
     esportes = {
@@ -187,11 +182,16 @@ def monitorar_esportes_avancado():
                             call_estrategia = f"🏈 *ESTRATÉGIA: NFL LIVE (FINAL DE JOGO)* 🏈\n🎯 *Sugestão:* Handicap de Pontos ou Over Pontos Limite.\n📊 Reta final dramática de pré-temporada!"
 
                 if disparar:
-                    # CORREÇÃO DEFINITIVA DA LINHA 192: Parênteses fechados perfeitamente
-                    msg = (
-                        f"🚨 *ROBÔ ARACATIENSE: ALERTA EM TEMPO REAL* 🚨\n\n"
-                        f"📊 *Modalidade:* {esporte}\n"
-                        f"🏆 *Liga:* {liga}\n"
-                        f"⚔️ *Confronto:* {time_casa} vs {time_fora}\n"
-                        f"📈 *Placar:* {placar} ({tempo})\n\n"
+                    # BLINDAGEM DA LINHA 191: Unificado em string contínua limpa sem parênteses perigosos
+                    msg = f"🚨 *ROBÔ ARACATIENSE: ALERTA EM TEMPO REAL* 🚨\n\n📊 *Modalidade:* {esporte}\n🏆 *Liga:* {liga}\n⚔️ *Confronto:* {time_casa} vs {time_fora}\n📈 *Placar:* {placar} ({tempo})\n\n{call_estrategia}"
+                    enviar_alerta_telegram(msg)
+                    alertas_enviados.append(id_jogo)
+
+        except Exception:
+            pass
+
+# Loops paralelos do sistema na Nuvem
+def loop_da_escuta_comandos():
+    while True:
+        processar_comandos_telegram()
 
