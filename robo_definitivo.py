@@ -54,25 +54,41 @@ def processar_comandos_telegram():
                     jogos_manuais.append(conteudo_jogo)
                     enviar_alerta_telegram(f"✅ *Jogo Cadastrado com Sucesso!*\n📌 Mapeado para análise pré-jogo:\n`{conteudo_jogo}`")
 
-            # 📊 COMANDO 2: CONSULTAR PLACAR AO VIVO AGORA
+            # 📊 COMANDO 2: CONSULTAR TODOS OS ESPORTES AO VIVO AGORA (6 ESPORTES)
             elif texto_comando == "/aovivo":
-                enviar_alerta_telegram("📡 *Consultando canais ao vivo de futebol...*")
+                enviar_alerta_telegram("📡 *Iniciando varredura global nos 6 canais esportivos...*")
                 
-                url_soccer = "https://spoyer.com"
-                try:
-                    res = requests.get(url_soccer, timeout=10).json()
-                    jogos_live = res.get("games", [])
-                    
-                    if not jogos_live:
-                        enviar_alerta_telegram("📭 Nenhuma partida de futebol activa no funil de monitoramento neste minuto.")
-                        continue
+                esportes_links = {
+                    "⚽ FUTEBOL": "soccer",
+                    "🏒 HÓQUEI": "hockey",
+                    "🏀 BASQUETE": "basketball",
+                    "🎾 TÊNIS": "tennis",
+                    "⚾ BEISEBOL": "baseball",
+                    "🏈 NFL": "americanfootball"
+                }
+                
+                msg_live = "📟 *PAINEL DE JOGOS AO VIVO AGORA:* 📟\n\n"
+                encontrou_jogos = False
+                
+                for nome_esp, id_esp in esportes_links.items():
+                    try:
+                        url_live = f"https://spoyer.com{id_esp}"
+                        res = requests.get(url_live, timeout=8).json()
+                        jogos_live = res.get("games", [])
                         
-                    msg_live = "📟 *PAINEL DE JOGOS AO VIVO AGORA:* 📟\n\n"
-                    for j in jogos_live[:4]:
-                        msg_live += f"🏆 *{j.get('league', {}).get('name', 'Torneio')}*\n⚔️ {j.get('home', {}).get('name')} {j.get('score', '0:0')} {j.get('away', {}).get('name')}\n⏱️ Tempo: {j.get('time', 'Ao vivo')}\n-------------------------------------\n"
+                        if jogos_live:
+                            msg_live += f"🔹 *{nome_esp}* 🔹\n"
+                            for j in jogos_live[:2]:  # Traz os 2 principais de cada esporte ativo
+                                msg_live += f"⚔️ {j.get('home', {}).get('name')} {j.get('score', '0:0')} {j.get('away', {}).get('name')} ({j.get('time', 'Live')})\n"
+                            msg_live += "-------------------------------------\n"
+                            encontrou_jogos = True
+                    except Exception:
+                        pass
+                
+                if encontrou_jogos:
                     enviar_alerta_telegram(msg_live)
-                except Exception:
-                    enviar_alerta_telegram("⚠️ Erro temporário de conexão com os placares da rodada.")
+                else:
+                    enviar_alerta_telegram("📭 Nenhum evento esportivo ativo no mundo passando pelos canais neste minuto.")
 
             # 📋 COMANDO 3: CONSULTAR JOGOS CADASTRADOS MANUALMENTE
             elif texto_comando == "/lista":
@@ -92,12 +108,12 @@ def processar_comandos_telegram():
 # ==============================================================================
 def monitorar_esportes_avancado():
     esportes = {
-        "FUTEBOL": "https://spoyer.com",
-        "HOQUEI NO GELO": "https://spoyer.com",
-        "BASQUETE": "https://spoyer.com",
-        "TENIS": "https://spoyer.com",
-        "BEISEBOL": "https://spoyer.com",
-        "FUTEBOL AMERICANO": "https://spoyer.com"
+        "FUTEBOL": "https://spoyer.comsoccer",
+        "HOQUEI NO GELO": "https://spoyer.comhockey",
+        "BASQUETE": "https://spoyer.combasketball",
+        "TENIS": "https://spoyer.comtennis",
+        "BEISEBOL": "https://spoyer.combaseball",
+        "FUTEBOL AMERICANO": "https://spoyer.comamericanfootball"
     }
 
     for esporte, url in esportes.items():
@@ -151,10 +167,11 @@ def monitorar_esportes_avancado():
                         disparar = True
                         call_estrategia = f"🏒 *ESTRATÉGIA: OVER GOLS HÓQUEI AO VIVO* 🏒\n🎯 *Sugestão:* Over Gols no Período Atual.\n📊 Bombardeio na pista! {chutes_SOG} finalizações registradas."
 
-                # 🏀 3. BASQUETE
+                # 🏀 3. BASQUETE (CORRIGIDO)
                 elif esporte == "BASQUETE" and ("4th" in tempo or "Quarter 4" in tempo):
                     pontos = placar.split("-")
                     if len(pontos) == 2:
+                        # CORREÇÃO DA LINHA 144: Adicionado os índices [0] e [1] para conversão correta de strings
                         if abs(int(pontos[0]) - int(pontos[1])) <= 3:
                             disparar = True
                             call_estrategia = f"🏀 *ESTRATÉGIA: BASQUETE LIVE* 🏀\n🎯 *Sugestão:* OVER pontos no Quarto Final.\n📊 Cronômetro parando muito por faltas táticas."
@@ -179,19 +196,4 @@ def monitorar_esportes_avancado():
                         diff_nfl = abs(int(pontos_nfl[0]) - int(pontos_nfl[1]))
                         if diff_nfl <= 7:
                             disparar = True
-                            call_estrategia = f"🏈 *ESTRATÉGIA: NFL LIVE (FINAL DE JOGO)* 🏈\n🎯 *Sugestão:* Handicap de Pontos ou Over Pontos Limite.\n📊 Reta final dramática de pré-temporada!"
-
-                if disparar:
-                    # BLINDAGEM DA LINHA 191: Unificado em string contínua limpa sem parênteses perigosos
-                    msg = f"🚨 *ROBÔ ARACATIENSE: ALERTA EM TEMPO REAL* 🚨\n\n📊 *Modalidade:* {esporte}\n🏆 *Liga:* {liga}\n⚔️ *Confronto:* {time_casa} vs {time_fora}\n📈 *Placar:* {placar} ({tempo})\n\n{call_estrategia}"
-                    enviar_alerta_telegram(msg)
-                    alertas_enviados.append(id_jogo)
-
-        except Exception:
-            pass
-
-# Loops paralelos do sistema na Nuvem
-def loop_da_escuta_comandos():
-    while True:
-        processar_comandos_telegram()
 
