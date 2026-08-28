@@ -3,6 +3,7 @@ import json
 import socketserver
 import threading
 import time
+from datetime import datetime
 import requests
 
 # 🔑 CONFIGURAÇÕES VALIDADAS DO SEU BOT TELEGRAM
@@ -102,7 +103,7 @@ def processar_comandos_telegram():
 # ==============================================================================
 # 🎯 MONITORAMENTO INTELIGENTE EM LOOP AO VIVO (6 ESPORTES)
 # ==============================================================================
-def monitorar_esportes_avancado():
+def executar_analise_esportiva_live():
     esportes = {
         "FUTEBOL": "https://spoyer.comsoccer",
         "HOQUEI NO GELO": "https://spoyer.comhockey",
@@ -180,12 +181,13 @@ def monitorar_esportes_avancado():
                         disparar = True
                         call_estrategia = f"🎾 *ESTRATÉGIA: TÊNIS LIVE* 🎾\n🎯 *Sugestão:* Vencedor do Próximo Game (Sacador).\n📊 Reta final equilibrada de set com vantagem para quem saca."
 
-                # ⚾ BEISEBOL
-                elif esporte == "BEISEBOL" and ("8th" in tempo or "9th" in tempo):
-                    corridas = placar.split("-")
-                    if len(corridas) == 2 and corridas[0] == corridas[1]:
-                        disparar = True
-                        call_estrategia = f"⚾ *ESTRATÉGIA: INNINGS FINAIS BEISEBOL* ⚾\n🎯 *Sugestão:* Mercado de Empate na Entrada Atual."
+                # ⚾ BEISEBOL (REORGANIZADO SEM ERROS)
+                elif esporte == "BEISEBOL":
+                    if "8th" in tempo or "9th" in tempo:
+                        corridas = placar.split("-")
+                        if len(corridas) == 2 and corridas[0] == corridas[1]:
+                            disparar = True
+                            call_estrategia = f"⚾ *ESTRATÉGIA: INNINGS FINAIS BEISEBOL* ⚾\n🎯 *Sugestão:* Mercado de Empate na Entrada Atual."
 
                 # 🏈 FUTEBOL AMERICANO (NFL)
                 elif esporte == "FUTEBOL AMERICANO" and ("4th" in tempo or "Quarter 4" in tempo):
