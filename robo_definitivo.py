@@ -20,7 +20,8 @@ alertas_enviados = []
 ultima_analise_pre_jogo = ""
 
 def enviar_alerta_telegram(mensagem):
-    payload = {"chat_id": CHAT_ID, "text": message, "parse_mode": "Markdown"}
+    # CORREÇÃO DA LINHA 23: Trocado 'message' por 'mensagem'
+    payload = {"chat_id": CHAT_ID, "text": mensagem, "parse_mode": "Markdown"}
     try:
         requests.post(URL_TELEGRAM, json=payload)
     except Exception as e:
@@ -41,7 +42,6 @@ def executar_analise_pre_jogo_global():
     msg_pre = f"📊 *ROBÔ ARACATIENSE: ANÁLISE PRÉ-JOGO ({datetime.now().strftime('%d/%m/%Y')})* 📊\n"
     msg_pre += "⚠️ _Filtro: Jogos reais programados para as próximas horas_\n\n"
     
-    # Lista fixa e blindada com confrontos reais e tips assertivas das 5 modalidades para hoje
     jogos_reais_hoje = [
         {"esporte": "⚽ FUTEBOL", "liga": "Campeonato Brasileiro", "casa": "Cruzeiro", "fora": "Internacional", "tip": "Over 1.5 Gols ou Empate anula"},
         {"esporte": "⚽ FUTEBOL", "liga": "La Liga Espanha", "casa": "Las Palmas", "fora": "Real Madrid", "tip": "Vitória do Real Madrid ou Over 2.5 Gols"},
@@ -102,7 +102,6 @@ def monitorar_esportes_avancado():
                 disparar = False
                 call_estrategia = ""
                 
-                # Tratamento do tempo corrigido para evitar travamento da linha do tempo
                 minuto_atual = 0
                 if tempo and "'" in tempo:
                     try:
@@ -113,7 +112,7 @@ def monitorar_esportes_avancado():
                 if esporte == "FUTEBOL":
                     gols = placar.split(":")
                     if len(gols) == 2:
-                        g_casa, g_fora = int(gols[0]), int(gols[1])
+                        g_casa, g_fora = int(gols), int(gols)
                         chutes_totais = int(jogo.get("shots_home", 0)) + int(jogo.get("shots_away", 0))
 
                         if 15 <= minuto_atual <= 35 and g_casa == g_fora and chutes_totais >= 6:
@@ -132,7 +131,7 @@ def monitorar_esportes_avancado():
                 elif esporte == "BASQUETE" and ("4th" in tempo or "Quarter 4" in tempo):
                     pontos = placar.split("-")
                     if len(pontos) == 2:
-                        if abs(int(pontos[0]) - int(pontos[1])) <= 3:
+                        if abs(int(pontos) - int(pontos)) <= 3:
                             disparar = True
                             call_estrategia = f"🏀 *ESTRATÉGIA: BASQUETE LIVE* 🏀\n🎯 *Sugestão:* OVER pontos no Quarto Final.\n📊 Cronômetro parando muito por faltas táticas."
 
@@ -143,7 +142,7 @@ def monitorar_esportes_avancado():
 
                 elif esporte == "BEISEBOL" and ("8th" in tempo or "9th" in tempo):
                     corridas = placar.split("-")
-                    if len(corridas) == 2 and corridas[0] == corridas[1]:
+                    if len(corridas) == 2 and corridas == corridas:
                         disparar = True
                         call_estrategia = f"⚾ *ESTRATÉGIA: INNINGS FINAIS BEISEBOL* ⚾\n🎯 *Sugestão:* Mercado de Empate na Entrada Atual ou Over Corridas."
 
@@ -178,4 +177,3 @@ def rodar_servidor_web():
 if __name__ == "__main__":
     threading.Thread(target=loop_do_robo, daemon=True).start()
     rodar_servidor_web()
-
