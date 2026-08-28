@@ -51,10 +51,8 @@ def executar_analise_pre_jogo_global():
     
     encontrou_qualquer_jogo = False
     
-    # O robô vai tentar buscar os jogos reais de hoje diretamente no feed público de eventos agendados
     for nome_esporte, id_esporte in esportes_ajuste.items():
         try:
-            # URL de eventos agendados para o dia de hoje (agenda global)
             url_agenda = f"https://spoyer.com{id_esporte}"
             response = requests.get(url_agenda, timeout=10)
             
@@ -65,13 +63,11 @@ def executar_analise_pre_jogo_global():
                 if jogos:
                     cont = 0
                     for j in jogos:
-                        # Pega apenas os 2 primeiros jogos reais de cada esporte para o relatório não ficar gigante
                         if cont < 2:
                             time_casa = j.get("home", {}).get("name", "Equipe A")
                             time_fora = j.get("away", {}).get("name", "Equipe B")
                             liga = j.get("league", {}).get("name", "Torneio")
                             
-                            # Define uma dica inteligente baseada no esporte
                             if nome_esporte == "FUTEBOL":
                                 tip = "🔥 Entrada sugerida: Over 1.5 Gols na partida"
                             elif nome_esporte == "BASQUETE":
@@ -94,7 +90,6 @@ def executar_analise_pre_jogo_global():
         except Exception:
             pass
 
-    # Caso todas as APIs de busca de agenda falhem ao mesmo tempo, ele avisa você em vez de mandar jogos falsos
     if not encontrou_qualquer_jogo:
         msg_pre += "📋 Nenhuma grande partida encontrada nos servidores de agendamento para as próximas horas.\n"
         msg_pre += "📡 O monitoramento continuará ativo focando 100% nos jogos ao vivo!\n"
@@ -150,10 +145,12 @@ def monitorar_esportes_avancado():
                     except:
                         pass
 
+                # CORREÇÃO DA LINHA 79: Removida a comparação duplicada de listas
                 if esporte == "FUTEBOL":
                     gols = placar.split(":")
                     if len(gols) == 2:
-                        g_casa, g_fora = int(gols), int(gols)
+                        g_casa = int(gols[0])
+                        g_fora = int(gols[1])
                         chutes_totais = int(jogo.get("shots_home", 0)) + int(jogo.get("shots_away", 0))
 
                         if 15 <= minuto_atual <= 35 and g_casa == g_fora and chutes_totais >= 6:
@@ -172,7 +169,7 @@ def monitorar_esportes_avancado():
                 elif esporte == "BASQUETE" and ("4th" in tempo or "Quarter 4" in tempo):
                     pontos = placar.split("-")
                     if len(pontos) == 2:
-                        if abs(int(pontos) - int(pontos)) <= 3:
+                        if abs(int(pontos[0]) - int(pontos[1])) <= 3:
                             disparar = True
                             call_estrategia = f"🏀 *ESTRATÉGIA: BASQUETE LIVE* 🏀\n🎯 *Sugestão:* OVER pontos no Quarto Final.\n📊 Cronômetro parando muito por faltas táticas."
 
@@ -183,7 +180,7 @@ def monitorar_esportes_avancado():
 
                 elif esporte == "BEISEBOL" and ("8th" in tempo or "9th" in tempo):
                     corridas = placar.split("-")
-                    if len(corridas) == 2 and corridas == corridas:
+                    if len(corridas) == 2 and corridas[0] == corridas[1]:
                         disparar = True
                         call_estrategia = f"⚾ *ESTRATÉGIA: INNINGS FINAIS BEISEBOL* ⚾\n🎯 *Sugestão:* Mercado de Empate na Entrada Atual ou Over Corridas."
 
@@ -211,3 +208,10 @@ def loop_do_robo():
 
 def rodar_servidor_web():
     PORT = 10000
+    Handler = http.server.SimpleHTTPRequestHandler
+    with socketserver.TCPServer(("", PORT), Handler) as httpd:
+        httpd.serve_forever()
+
+if __name__ == "__main__":
+    threading.Thread(target=loop_do_robo, daemon=True).start()
+    rodar_servidor_web()
