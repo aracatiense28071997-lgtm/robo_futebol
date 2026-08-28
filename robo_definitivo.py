@@ -54,14 +54,13 @@ def processar_comandos_telegram():
                     enviar_alerta_telegram(f"✅ *Jogo Cadastrado com Sucesso!*\n📌 Mapeado para análise pré-jogo:\n`{conteudo_jogo}`")
 
             elif texto_comando == "/aovivo":
-                enviar_alerta_telegram("📡 *Iniciando varredura global nos 6 canais esportivos...*")
+                enviar_alerta_telegram("📡 *Iniciando varredura global nos canais esportivos...*")
                 
                 esportes_links = {
                     "⚽ FUTEBOL": "soccer",
                     "🏒 HÓQUEI": "hockey",
                     "🏀 BASQUETE": "basketball",
                     "🎾 TÊNIS": "tennis",
-                    "⚾ BEISEBOL": "baseball",
                     "🏈 NFL": "americanfootball"
                 }
                 
@@ -101,7 +100,7 @@ def processar_comandos_telegram():
         print(f"Erro na escuta do Telegram: {e}")
 
 # ==============================================================================
-# 🎯 MONITORAMENTO INTELIGENTE EM LOOP AO VIVO (6 ESPORTES)
+# 🎯 MONITORAMENTO INTELIGENTE EM LOOP AO VIVO (5 ESPORTES)
 # ==============================================================================
 def executar_analise_esportiva_live():
     esportes = {
@@ -109,7 +108,6 @@ def executar_analise_esportiva_live():
         "HOQUEI NO GELO": "https://spoyer.comhockey",
         "BASQUETE": "https://spoyer.combasketball",
         "TENIS": "https://spoyer.comtennis",
-        "BEISEBOL": "https://spoyer.combaseball",
         "FUTEBOL AMERICANO": "https://spoyer.comamericanfootball"
     }
 
@@ -181,14 +179,6 @@ def executar_analise_esportiva_live():
                         disparar = True
                         call_estrategia = f"🎾 *ESTRATÉGIA: TÊNIS LIVE* 🎾\n🎯 *Sugestão:* Vencedor do Próximo Game (Sacador).\n📊 Reta final equilibrada de set com vantagem para quem saca."
 
-                # ⚾ BEISEBOL (REORGANIZADO SEM ERROS)
-                elif esporte == "BEISEBOL":
-                    if "8th" in tempo or "9th" in tempo:
-                        corridas = placar.split("-")
-                        if len(corridas) == 2 and corridas[0] == corridas[1]:
-                            disparar = True
-                            call_estrategia = f"⚾ *ESTRATÉGIA: INNINGS FINAIS BEISEBOL* ⚾\n🎯 *Sugestão:* Mercado de Empate na Entrada Atual."
-
                 # 🏈 FUTEBOL AMERICANO (NFL)
                 elif esporte == "FUTEBOL AMERICANO" and ("4th" in tempo or "Quarter 4" in tempo):
                     pontos_nfl = placar.split("-")
@@ -201,4 +191,17 @@ def executar_analise_esportiva_live():
                             call_estrategia = f"🏈 *ESTRATÉGIA: NFL LIVE (FINAL DE JOGO)* 🏈\n🎯 *Sugestão:* Handicap de Pontos ou Over Pontos Limite.\n📊 Reta final dramática de pré-temporada!"
 
                 if disparar:
+                    msg = f"🚨 *ROBÔ ARACATIENSE: ALERTA EM TEMPO REAL* 🚨\n\n📊 *Modalidade:* {esporte}\n🏆 *Liga:* {liga}\n⚔️ *Confronto:* {time_casa} vs {time_fora}\n📈 *Placar:* {placar} ({tempo})\n\n{call_estrategia}"
+                    enviar_alerta_telegram(msg)
+                    alertas_enviados.append(id_jogo)
 
+        except Exception as e:
+            print(f"Aviso na modalidade {esporte}: {e}")
+
+# Loops paralelos do sistema na Nuvem
+def loop_da_escuta_comandos():
+    while True:
+        processar_comandos_telegram()
+        time.sleep(1)
+
+def loop_do_monitor_live():
