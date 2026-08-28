@@ -14,11 +14,10 @@ URL_SEND = f"https://telegram.org{TELEGRAM_TOKEN}/sendMessage"
 URL_UPDATES = f"https://telegram.org{TELEGRAM_TOKEN}/getUpdates"
 
 alertas_enviados = []
-jogos_manuais = []  # Lista na memória para guardar os jogos que você cadastrar
+jogos_manuais = []
 ultimo_update_id = 0
 
 def enviar_alerta_telegram(mensagem):
-    # CORREÇÃO DEFINITIVA DA LINHA 37: Trocado 'message' por 'mensagem'
     payload = {"chat_id": CHAT_ID, "text": mensagem, "parse_mode": "Markdown"}
     try:
         requests.post(URL_SEND, json=payload)
@@ -103,7 +102,7 @@ def monitorar_esportes_avancado():
         "BASQUETE": "https://spoyer.com",
         "TENIS": "https://spoyer.com",
         "BEISEBOL": "https://spoyer.com",
-        "FUTEBOL AMERICANO": "https://spoyer.com" # Canal NFL ativo
+        "FUTEBOL AMERICANO": "https://spoyer.com"
     }
 
     for esporte, url in esportes.items():
@@ -178,16 +177,21 @@ def monitorar_esportes_avancado():
                         disparar = True
                         call_estrategia = f"⚾ *ESTRATÉGIA: INNINGS FINAIS BEISEBOL* ⚾\n🎯 *Sugestão:* Mercado de Empate na Entrada Atual."
 
-                # 🏈 6. FUTEBOL AMERICANO (NFL PRÉ-SEASON)
+                # 🏈 6. FUTEBOL AMERICANO (NFL)
                 elif esporte == "FUTEBOL AMERICANO" and ("4th" in tempo or "Quarter 4" in tempo):
                     pontos_nfl = placar.split("-")
                     if len(pontos_nfl) == 2:
                         diff_nfl = abs(int(pontos_nfl[0]) - int(pontos_nfl[1]))
-                        # Filtro assertivo: Jogo parelho de um touchdown de diferença (até 7 pontos) no último quarto
                         if diff_nfl <= 7:
                             disparar = True
-                            call_estrategia = f"🏈 *ESTRATÉGIA: NFL LIVE (FINAL DE JOGO)* 🏈\n🎯 *Sugestão:* Handicap de Pontos ou Over Pontos Limite.\n📊 Reta final dramática de pré-temporada! Intensidade máxima nas posses de bola."
+                            call_estrategia = f"🏈 *ESTRATÉGIA: NFL LIVE (FINAL DE JOGO)* 🏈\n🎯 *Sugestão:* Handicap de Pontos ou Over Pontos Limite.\n📊 Reta final dramática de pré-temporada!"
 
                 if disparar:
+                    # CORREÇÃO DEFINITIVA DA LINHA 192: Parênteses fechados perfeitamente
                     msg = (
                         f"🚨 *ROBÔ ARACATIENSE: ALERTA EM TEMPO REAL* 🚨\n\n"
+                        f"📊 *Modalidade:* {esporte}\n"
+                        f"🏆 *Liga:* {liga}\n"
+                        f"⚔️ *Confronto:* {time_casa} vs {time_fora}\n"
+                        f"📈 *Placar:* {placar} ({tempo})\n\n"
+
